@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
 export const metadata: Metadata = {
-  title: "GameTopUp Bolivia | Recargas rápidas y seguras",
-  description: "Recarga Free Fire, Roblox, Mobile Legends y tus juegos favoritos en Bolivia.",
-  manifest: "/manifest.json",
-  themeColor: "#090B16",
+  title: "NexTronix FF | Recargas para todo juego",
+  description: "Recargas de videojuegos en Bolivia. Diamantes, monedas y paquetes en bolivianos.",
+  themeColor: "#08050f",
 };
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="es">
-      <body>{children}</body>
-    </html>
-  );
+  return <html lang="es"><body>{children}</body></html>;
 }
