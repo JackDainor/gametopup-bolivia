@@ -47,7 +47,7 @@ export default function AdminDashboard() {
         category_id: String(p.category_id),
       }));
       if (!imported.length) {
-        setMessage("Shop2TopUp no devolvió paquetes topup para " + targetGameName + ". No se modificó tu catálogo.");
+        setMessage("No se encontraron paquetes LATAM para " + targetGameName + ". Diagnóstico: " + JSON.stringify(j.diagnostics || {}));
         return;
       }
       setGame(v => ({
