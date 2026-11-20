@@ -26,11 +26,11 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  const isFreeFire=game.name.toLowerCase().includes("free fire");
  const selectedShop2TopupId=selected?.shop2topup_id || (isFreeFire && selected ? freeFirePackageIds[selected.name] : undefined);
  async function validate(){
-  if(!selectedShop2TopupId){setError("Este paquete aún no tiene configurado su ID de Shop2TopUp. Contacta al administrador.");return;}
+  if(!selectedShop2TopupId){setError("Este paquete todavía no está disponible para validar automáticamente.");return;}
   if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
   setValidating(true);setError("");setPlayerName("");setValidated(false);
-  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selectedShop2TopupId,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};setPlayerName(p.player_name||p.name||"");setValidated(true);if(!p.player_name&&!p.name)setError("ID validado, pero el proveedor no devolvió el nombre del jugador.");}
-  catch(e){setError(e instanceof Error?e.message:"Error al validar");}finally{setValidating(false);}
+  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selectedShop2TopupId,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};const resolvedName=p.player_name||p.nickname||p.username||p.name||p.data?.player_name||p.data?.name||"";setPlayerName(resolvedName);setValidated(true);if(!resolvedName)setError("El ID fue aceptado, pero no recibimos el nombre del jugador.");}
+  catch(e){const raw=e instanceof Error?e.message:"";setError(raw.toLowerCase().includes("temporarily unavailable")?"Este paquete no está disponible para validación en este momento. Intenta nuevamente más tarde.":raw||"No se pudo verificar el ID. Revisa los datos e intenta nuevamente.");}finally{setValidating(false);}
  }
  async function goPayment(){
   if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
@@ -55,8 +55,10 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  {selected&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm"><span className="text-violet-100/60">Total a pagar</span><strong className="float-right text-lg text-amber-300">Bs {Number(selected.price).toFixed(2)}</strong></div>}
  <label className="block text-sm text-violet-100/70">ID de jugador<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={playerId} onChange={e=>{setPlayerId(e.target.value);setValidated(false);}} placeholder="Escribe tu ID"/></label>
  <button onClick={validate} disabled={validating||!selected} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
- {selected&&!selectedShop2TopupId&&<p className="text-xs text-amber-200/70">Este paquete todavía no tiene un ID de validación configurado.</p>}{selectedShop2TopupId&&<p className="text-xs text-emerald-200/60">Paquete vinculado a Shop2TopUp · ID {selectedShop2TopupId}</p>}{!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
- {validated&&<p className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300"><CheckCircle2 className="mr-2 inline"/>Jugador reconocido: <strong>{playerName||playerId}</strong></p>}
+ {validating&&<p className="rounded-xl border border-violet-300/15 bg-violet-500/10 p-3 text-center text-sm text-violet-100">Estamos verificando tu jugador...</p>}
+ {validated&&<div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Jugador verificado</p><p className="mt-1 text-xl font-black text-white">{playerName||playerId}</p><p className="mt-1 text-xs text-emerald-100/70">Comprueba que este sea tu perfil antes de continuar.</p></div>}
+ {selected&&!selectedShop2TopupId&&<p className="text-xs text-amber-200/70">Este paquete todavía no tiene un ID de validación configurado.</p>}{!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
+
  <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-violet-100/70">Tu nombre<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Nombre"/></label><label className="text-sm text-violet-100/70">WhatsApp<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="7XXXXXXX"/><span className="mt-1 block text-xs leading-relaxed text-violet-100/50">Usaremos tu número de WhatsApp para enviarte la confirmación y el comprobante cuando tu recarga esté completada. Incluye el código de país si corresponde.</span></label></div>
  <button onClick={goPayment} disabled={busy||!selected} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 p-3.5 font-black">{busy?"Cargando...":"Continuar al pago"}</button>
  </div>}
