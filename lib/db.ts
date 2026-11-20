@@ -18,7 +18,7 @@ export async function ensureSchema() {
   )`;
   await sql`CREATE TABLE IF NOT EXISTS customers (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
-    whatsapp TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
+    whatsapp TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   await sql`CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY, customer_id TEXT, customer_name TEXT NOT NULL,
@@ -28,4 +28,7 @@ export async function ensureSchema() {
     status TEXT NOT NULL DEFAULT 'pending_payment', created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS player_data JSONB NOT NULL DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id TEXT`;
+  await sql`ALTER TABLE customers ALTER COLUMN name SET DEFAULT ''`;
+  await sql`ALTER TABLE customers ALTER COLUMN whatsapp SET DEFAULT ''`;
 }
