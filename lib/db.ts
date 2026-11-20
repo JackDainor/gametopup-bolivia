@@ -27,4 +27,5 @@ export async function ensureSchema() {
     amount NUMERIC(12,2) NOT NULL, receipt TEXT DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending_payment', created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS player_data JSONB NOT NULL DEFAULT '{}'::jsonb`;
 }
