@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
     await sql`INSERT INTO orders (id, customer_name, whatsapp, game_name, package_name, player_id, amount, receipt, status)
       VALUES (${id}, ${customer_name.trim()}, ${whatsapp.trim()}, ${game.name}, ${pack.name}, ${String(player_id)}, ${Number(pack.price)}, ${receipt}, 'verifying_payment')`;
+    await sql`UPDATE orders SET player_data = ${JSON.stringify({ player_name: player_name || "", player_id: String(player_id) })}::jsonb WHERE id = ${id}`;
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
     if (botToken && chatId) {
