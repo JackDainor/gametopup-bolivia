@@ -20,6 +20,9 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("overview"), [data, setData] = useState<Data>({ games: [], qr: "", orders: [], customers: [] });
   const [game, setGame] = useState<Game>(blank), [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [regionOptions, setRegionOptions] = useState<{name:string;count:number}[]>([]);
+  const [regionTarget, setRegionTarget] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("");
   async function load() {
     const r = await fetch("/api/admin/games");
     const j = await r.json();
@@ -34,11 +37,32 @@ export default function AdminDashboard() {
     if (r.ok) setLogged(true); else setMessage(j.error || "No se pudo iniciar sesión");
   }
   async function importShop2Topup(targetGameName: string) {
-    setBusy(true); setMessage("Consultando paquetes topup de " + targetGameName + "...");
+    if (!targetGameName.trim()) { setMessage("Primero escribe el nombre del juego."); return; }
+    setBusy(true); setMessage("Buscando regiones disponibles para " + targetGameName + "...");
     try {
-      const r = await fetch("/api/admin/shop2topup/catalog?game=" + encodeURIComponent(targetGameName));
+      const r = await fetch("/api/admin/shop2topup/catalog?game=" + encodeURIComponent(targetGameName) + "&mode=regions");
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "No se pudo consultar Shop2TopUp.");
+      if (!r.ok) throw new Error(j.error || "No se pudieron consultar las regiones.");
+      const regions = (j.regions || []) as {name:string;count:number}[];
+      if (!regions.length) {
+        setMessage("No se detectaron regiones disponibles para " + targetGameName + ". Diagnóstico: " + JSON.stringify(j.diagnostics || {}));
+        return;
+      }
+      setRegionTarget(targetGameName);
+      setRegionOptions(regions);
+      setSelectedRegion(regions[0].name);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Error al consultar regiones.");
+    } finally { setBusy(false); }
+  }
+  async function confirmRegionImport() {
+    if (!regionTarget || !selectedRegion) return;
+    setBusy(true); setMessage("Importando paquetes de " + selectedRegion + "...");
+    try {
+      const url = "/api/admin/shop2topup/catalog?game=" + encodeURIComponent(regionTarget) + "&region=" + encodeURIComponent(selectedRegion);
+      const r = await fetch(url);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "No se pudieron importar los paquetes.");
       const imported = (j.packages || []).map((p: any) => ({
         name: p.name,
         quantity: p.quantity || p.name,
@@ -47,7 +71,7 @@ export default function AdminDashboard() {
         category_id: String(p.category_id),
       }));
       if (!imported.length) {
-        setMessage("No se encontraron paquetes LATAM para " + targetGameName + ". Diagnóstico: " + JSON.stringify(j.diagnostics || {}));
+        setMessage("No hay paquetes topup para " + selectedRegion + " en " + regionTarget + ". " + JSON.stringify(j.diagnostics || {}));
         return;
       }
       setGame(v => ({
@@ -57,7 +81,10 @@ export default function AdminDashboard() {
           ...imported,
         ],
       }));
-      setMessage(imported.length + " paquetes topup importados. Asigna el precio de venta a cada uno y guarda el juego.");
+      setMessage(imported.length + " paquetes de " + selectedRegion + " importados. Asigna el precio en Bs y guarda el juego.");
+      setRegionTarget("");
+      setRegionOptions([]);
+      setSelectedRegion("");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Error al importar paquetes.");
     } finally { setBusy(false); }
@@ -111,6 +138,7 @@ export default function AdminDashboard() {
     <aside className="admin-sidebar"><a className="admin-brand" href="/"><span className="brand-mark"><Gamepad2 /></span><span>NEXTRONIX <small>ADMIN</small></span></a><nav>{tabs.map(t => <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}><t.icon size={18}/>{t.label}</button>)}</nav><button className="logout-btn" onClick={logout}><LogOut size={17}/> Cerrar sesión</button></aside>
     <section className="admin-content"><header className="admin-top"><div><p className="eyebrow">NEXTRONIX FF / ADMIN</p><h1>{tabs.find(t => t.id === tab)?.label}</h1></div><span className="online-pill">● Sesión protegida</span></header>
     {message && <p className="notice">{message}</p>}
+    {regionTarget && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4" onClick={() => !busy && setRegionTarget("")}><section className="w-full max-w-md rounded-2xl border border-violet-400/30 bg-[#111018] p-5 text-white shadow-2xl" onClick={e => e.stopPropagation()}><p className="text-xs font-bold uppercase tracking-widest text-violet-300">Shop2TopUp · Importación</p><h2 className="mt-2 text-xl font-black">Selecciona una región</h2><p className="mt-1 text-sm text-white/60">Juego: {regionTarget}. Solo se importarán los paquetes topup de la región elegida.</p><div className="mt-4 max-h-64 space-y-2 overflow-y-auto">{regionOptions.map(region => <label key={region.name} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${selectedRegion === region.name ? "border-amber-300 bg-amber-300/10" : "border-white/10 bg-white/5"}`}><span className="flex items-center gap-3"><input type="radio" name="shop2topup-region" checked={selectedRegion === region.name} onChange={() => setSelectedRegion(region.name)}/><strong>{region.name}</strong></span><span className="text-xs text-white/50">{region.count} paquetes</span></label>)}</div><div className="mt-5 flex gap-2"><button type="button" className="ghost-btn flex-1" disabled={busy} onClick={() => setRegionTarget("")}>Cancelar</button><button type="button" className="primary-btn flex-1" disabled={busy || !selectedRegion} onClick={confirmRegionImport}>{busy ? "Importando..." : "Importar región"}</button></div></section></div>}
     {tab === "overview" && <div className="stat-grid"><article><span>Juegos activos</span><strong>{data.games.length}</strong></article><article><span>Pedidos registrados</span><strong>{data.orders.length}</strong></article><article><span>Clientes</span><strong>{data.customers.length}</strong></article><article><span>Moneda</span><strong>Bs</strong></article></div>}
     {tab === "games" && <><div className="section-head"><div><h2>Catálogo de juegos</h2><p className="muted">Administra imágenes, paquetes, diamantes y precios en bolivianos.</p></div><button className="primary-btn compact" onClick={() => { setGame(blank); setEditing(true); }}><Plus size={16}/> Nuevo juego</button></div>
       {editing && <form className="editor-card" onSubmit={saveGame}><h3>{game.id ? "Editar juego" : "Agregar juego"}</h3><label>Nombre del juego<input value={game.name} onChange={e => setGame(v => ({...v,name:e.target.value}))} required placeholder="Ej. Free Fire"/></label><label>Descripción<input value={game.description} onChange={e => setGame(v => ({...v,description:e.target.value}))} placeholder="Diamantes y membresías"/></label><label className="upload-field"><Upload size={17}/> Imagen del juego<input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0],"game")}/></label>{game.image && <img className="preview-img" src={game.image} alt="Vista previa"/>}<div className="package-editor"><div className="section-head"><h3>Paquetes / diamantes</h3><div className="flex flex-wrap gap-2"><button type="button" className="ghost-btn" disabled={busy} onClick={() => importShop2Topup(game.name)}>Importar topup de {game.name || "este juego"}</button><button type="button" className="ghost-btn" onClick={() => setGame(v => ({...v,packages:[...v.packages,{name:"",quantity:"",price:"",shop2topup_id:"",category_id:""}]}))}><Plus size={15}/> Añadir paquete</button></div></div><p className="muted">Los paquetes se importan sin precio. Tú defines y editas el precio en Bs. La importación no realiza recargas.</p>{game.packages.map((p,i)=><div className="pack-row" key={i}><input placeholder="Nombre (100 diamantes)" value={p.name} onChange={e => setGame(v => ({...v,packages:v.packages.map((x,n)=>n===i?{...x,name:e.target.value}:x)}))}/><input placeholder="Cantidad" value={p.quantity} onChange={e => setGame(v => ({...v,packages:v.packages.map((x,n)=>n===i?{...x,quantity:e.target.value}:x)}))}/><input placeholder="Precio Bs" type="number" min="0" step=".01" value={p.price} onChange={e => setGame(v => ({...v,packages:v.packages.map((x,n)=>n===i?{...x,price:e.target.value}:x)}))}/><input placeholder="ID subcategoría Shop2TopUp" value={p.shop2topup_id || ""} onChange={e => setGame(v => ({...v,packages:v.packages.map((x,n)=>n===i?{...x,shop2topup_id:e.target.value}:x)}))}/><input placeholder="ID categoría (validación)" value={p.category_id || ""} onChange={e => setGame(v => ({...v,packages:v.packages.map((x,n)=>n===i?{...x,category_id:e.target.value}:x)}))}/><button type="button" className="icon-btn" onClick={() => setGame(v => ({...v,packages:v.packages.filter((_,n)=>n!==i)}))}><Trash2 size={16}/></button></div>)}</div><div className="form-actions"><button type="button" className="ghost-btn" onClick={() => setEditing(false)}>Cancelar</button><button className="primary-btn" disabled={busy}><Save size={16}/>{busy ? "Guardando..." : "Guardar juego"}</button></div></form>}
