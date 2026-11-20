@@ -25,8 +25,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if(status === "completed"){
       const o = rows[0] as any;
       const amount = Number(o.amount || 0);
-      const date = new Date(o.created_at).toLocaleString("es-BO", { timeZone: "America/La_Paz", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
-      const receipt = ["🧾 RECIBO DE COMPRA","------------------------","📦 Producto: "+o.package_name+" - "+o.game_name,"🆔 ID Jugador: "+o.player_id,"👤 Nick: "+(o.player_data?.player_name || "No disponible"),"💰 Monto: BOB "+amount.toFixed(2)+" · USD "+(amount/10).toFixed(4),"📅 Fecha: "+date,"✅ Estado: ¡Entregado con éxito!","🎮 Gracias por preferirnos."].join("\\n");
+      const date = new Date(o.created_at).toLocaleString("es-BO", { timeZone: "America/La_Paz", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:true });
+      const receipt = [
+        "🧾 RECIBO DE COMPRA",
+        "------------------------",
+        "📦 Producto: " + o.package_name + " - " + o.game_name,
+        "🆔 ID Jugador: " + o.player_id,
+        "👤 Nick: " + (o.player_data?.player_name || "No disponible"),
+        "💰 Monto: BOB " + amount.toFixed(2) + " · USD " + (amount / 10).toFixed(4),
+        "📅 Fecha: " + date,
+        "✅ Estado: ¡Entregado con éxito!",
+        "🎮 Gracias por preferirnos."
+      ].join("\n");
       const token=process.env.TELEGRAM_BOT_TOKEN, chat=process.env.TELEGRAM_CHAT_ID;
       if(token&&chat){try{await fetch("https://api.telegram.org/bot"+token+"/sendMessage",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:chat,text:receipt})});}catch(e){console.error("Telegram completion receipt failed",e);}}
     }
