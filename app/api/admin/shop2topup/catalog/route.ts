@@ -25,8 +25,17 @@ async function providerGet(path: string, key: string) {
   return body;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const gameName = new URL(request.url).searchParams.get("game")?.trim();
+  if (!gameName) return NextResponse.json({ error: "Indica el nombre del juego que deseas importar." }, { status: 400 });
+  const normalizedGame = gameName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const aliases: Record<string, string[]> = { "free fire": ["free fire", "freefire"], "mlbb": ["mobile legends", "mlbb"], "mobile legends": ["mobile legends", "mlbb"] };
+  const terms = aliases[normalizedGame] || [normalizedGame];
+  const matchesGame = (value: string) => {
+    const normalized = value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    return terms.some(term => normalized.includes(term));
+  };
   const key = process.env.SHOP2TOPUP_API_KEY;
   if (!key) return NextResponse.json({ error: "Falta configurar Shop2TopUp." }, { status: 503 });
 
@@ -47,10 +56,10 @@ export async function GET() {
         const subBody = await providerGet("/catalog/subcategories?categoryId=" + encodeURIComponent(String(categoryId)), key);
         for (const item of rows(subBody)) {
           const name = String(item.name || item.title || item.product_name || "");
-          const isFreeFire = /free\s*fire|garena/i.test([bigName, categoryName, name].join(" "));
+          const isRequestedGame = matchesGame(categoryName) || matchesGame(name);
           const isTopup = String(item.product_type || "").toLowerCase() === "topup";
           const itemId = item.item_id ?? item.id;
-          if (!isFreeFire || !isTopup || itemId == null) continue;
+          if (!isRequestedGame || !isTopup || itemId == null) continue;
           found.push({
             name,
             quantity: String(item.quantity || item.description || name),
