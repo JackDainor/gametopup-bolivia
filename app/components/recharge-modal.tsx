@@ -16,15 +16,10 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  const [step,setStep]=useState<"details"|"payment"|"sent">("details");
  const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [orderId,setOrderId]=useState("");
  const selected=game.packages.find(p=>p.name===pack);
- const freeFirePackageIds: Record<string,string> = {
-  "100 + 10 Diamonds":"23",
-  "210 + 21 Diamonds":"24",
-  "530 + 53 Diamonds":"25",
-  "1,080 + 108 Diamonds":"26",
-  "2,200 + 220 Diamonds":"27"
- };
  const isFreeFire=game.name.toLowerCase().includes("free fire");
- const selectedShop2TopupId=selected?.shop2topup_id || (isFreeFire && selected ? freeFirePackageIds[selected.name] : undefined);
+ // Los paquetes actuales de Free Fire son vouchers; no admiten validación de cuenta.
+ // No enviar sus item_id al endpoint de validación de jugador.
+ const selectedShop2TopupId=isFreeFire ? undefined : selected?.shop2topup_id;
  async function validate(){
   if(!selectedShop2TopupId){setError("Este paquete todavía no está disponible para validar automáticamente.");return;}
   if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
@@ -54,10 +49,11 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  <div><div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-sm font-bold text-white">Selecciona tu paquete</p><p className="mt-1 text-xs text-violet-100/50">Toca el paquete que deseas comprar.</p></div><span className="text-xs text-violet-200/60">{game.packages.length} disponibles</span></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{game.packages.map((p,i)=><button type="button" key={p.name} onClick={()=>{setPack(p.name);setValidated(false);setPlayerName("");setError("");}} className={`group relative min-h-[112px] rounded-2xl border p-3 text-left transition-all duration-200 ${pack===p.name?"border-amber-300 bg-gradient-to-br from-violet-900/80 to-black shadow-[0_0_22px_#a855f755] ring-1 ring-amber-300/60":"border-violet-300/20 bg-[#101010] hover:border-violet-400/70 hover:bg-[#171020]"}`}><span className="block text-[11px] font-bold uppercase tracking-wide text-violet-200/65">{p.quantity||"Paquete"}</span><strong className="mt-2 block text-sm leading-snug text-white">{p.name}</strong><span className="mt-3 block text-lg font-black text-amber-300">Bs {Number(p.price).toFixed(2)}</span>{pack===p.name&&<span className="absolute right-2 top-2 rounded-full bg-amber-300 p-1 text-black"><CheckCircle2 size={13}/></span>}</button>)}</div></div>
  {selected&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm"><span className="text-violet-100/60">Total a pagar</span><strong className="float-right text-lg text-amber-300">Bs {Number(selected.price).toFixed(2)}</strong></div>}
  <label className="block text-sm text-violet-100/70">ID de jugador<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={playerId} onChange={e=>{setPlayerId(e.target.value);setValidated(false);}} placeholder="Escribe tu ID"/></label>
- <button onClick={validate} disabled={validating||!selected} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
+ {selectedShop2TopupId&&<><button onClick={validate} disabled={validating||!selected} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
  {validating&&<p className="rounded-xl border border-violet-300/15 bg-violet-500/10 p-3 text-center text-sm text-violet-100">Estamos verificando tu jugador...</p>}
- {validated&&<div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Jugador verificado</p><p className="mt-1 text-xl font-black text-white">{playerName||playerId}</p><p className="mt-1 text-xs text-emerald-100/70">Comprueba que este sea tu perfil antes de continuar.</p></div>}
- {selected&&!selectedShop2TopupId&&<p className="text-xs text-amber-200/70">Este paquete todavía no tiene un ID de validación configurado.</p>}{!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
+ {validated&&<div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Jugador verificado</p><p className="mt-1 text-xl font-black text-white">{playerName||playerId}</p><p className="mt-1 text-xs text-emerald-100/70">Comprueba que este sea tu perfil antes de continuar.</p></div></>}
+ {selected&&!selectedShop2TopupId&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100/80"><strong className="block text-amber-200">Verificación manual del jugador</strong><span className="mt-1 block text-xs leading-relaxed">Este paquete no permite consultar automáticamente el nombre de la cuenta. Revisa tu ID antes de continuar; el administrador lo comprobará antes de realizar la recarga.</span></div>}
+ {!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
 
  <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-violet-100/70">Tu nombre<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Nombre"/></label><label className="text-sm text-violet-100/70">WhatsApp<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="7XXXXXXX"/><span className="mt-1 block text-xs leading-relaxed text-violet-100/50">Usaremos tu número de WhatsApp para enviarte la confirmación y el comprobante cuando tu recarga esté completada. Incluye el código de país si corresponde.</span></label></div>
  <button onClick={goPayment} disabled={busy||!selected} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 p-3.5 font-black">{busy?"Cargando...":"Continuar al pago"}</button>
