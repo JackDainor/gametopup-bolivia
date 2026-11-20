@@ -34,7 +34,7 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
   catch(e){setError(e instanceof Error?e.message:"Error al crear pedido.");}finally{setBusy(false);}
  }
  function fileToData(file:File){if(file.size>2*1024*1024){setError("El comprobante debe pesar menos de 2 MB.");return;}const reader=new FileReader();reader.onload=()=>setReceipt(String(reader.result));reader.readAsDataURL(file);}
- return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm" onClick={onClose}><section className="relative max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-violet-300/20 bg-[#11091d] p-5 text-white shadow-2xl sm:p-7" onClick={e=>e.stopPropagation()}>
+ return <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/85 p-2 pt-2 backdrop-blur-sm" onClick={onClose}><section className="relative my-0 max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-violet-300/20 bg-[#11091d] p-5 text-white shadow-2xl sm:p-7" onClick={e=>e.stopPropagation()}>
  <button onClick={onClose} className="absolute right-4 top-4 rounded-full bg-white/10 p-2"><X size={18}/></button>
  <p className="text-xs font-black tracking-[.2em] text-amber-300">NEXTRONIX FF · RECARGA</p><h2 className="mt-2 pr-8 text-2xl font-black">{game.name}</h2>
  {step==="details"&&<div className="mt-5 space-y-4">
