@@ -4,6 +4,8 @@ import { ensureSchema, getSql } from "@/lib/db";
 import SupportWidget from "@/app/components/support-widget";
 import AccountNav from "@/app/components/account-nav";
 import PendingOrderNotice from "@/app/components/pending-order-notice";
+import HistoryFloatButton from "@/app/components/history-float-button";
+import InstallAppButton from "@/app/components/install-app-button";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export default async function Home() {
   <div className="site-glow pointer-events-none fixed inset-0 -z-0"/>
   <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
    <a href="/" className="flex items-center gap-3"><img src="/nextr-logo.webp" alt="NexTronix FF" className="h-12 w-12 rounded-xl border border-violet-300/30 object-cover shadow-[0_0_25px_#8b20ff66]"/></a>
-   <nav className="hidden gap-8 text-sm text-violet-100/80 md:flex"><a href="#juegos">Juegos</a><a href="#como-funciona">Cómo comprar</a><a href="#pagos">Pagos</a></nav><AccountNav/>
+   <nav className="hidden gap-8 text-sm text-violet-100/80 md:flex"><a href="#juegos">Juegos</a><a href="#como-funciona">Cómo comprar</a><a href="#pagos">Pagos</a></nav><div className="flex items-center gap-2"><InstallAppButton/><AccountNav/></div>
    <div className="flex items-center gap-2"><a href="/historial" className="hidden rounded-xl border border-violet-300/20 px-3 py-2 text-xs font-bold sm:inline">Mis pedidos</a><a href="#juegos" className="rounded-xl border border-violet-300/30 bg-violet-500/15 px-4 py-2.5 text-sm font-bold hover:bg-violet-500/30">Ver recargas <ArrowUpRight className="ml-1 inline" size={15}/></a></div>
   </header>
   <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:pt-20">
@@ -62,6 +64,7 @@ export default async function Home() {
   <section id="pagos" className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="rounded-3xl border border-amber-300/20 bg-gradient-to-r from-amber-400/10 via-violet-500/10 to-transparent p-7 sm:p-10"><div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center"><div><p className="text-xs font-black uppercase tracking-[.22em] text-amber-300">PAGOS EN BOLIVIA</p><h2 className="mt-2 text-2xl font-black sm:text-3xl">PAGA CON QR BOLIVIANO</h2><p className="mt-2 max-w-xl text-sm leading-6 text-violet-100/60">El QR será configurado por administración. Cada comprobante será revisado manualmente antes de procesar la recarga.</p></div><span className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-black">🇧🇴 BOLIVIANOS · Bs</span></div></div></section>
   <footer className="relative z-10 border-t border-violet-300/10 px-5 py-8 text-center text-xs text-violet-100/40">© {new Date().getFullYear()} NexTronix FF · Recargas para todo juego.</footer>
   <SupportWidget/>
+  <HistoryFloatButton/>
   <PendingOrderNotice/>
  </main>;
 }
