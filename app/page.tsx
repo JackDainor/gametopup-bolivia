@@ -1,6 +1,10 @@
 import StoreGameCard from "@/app/components/store-game-card";
 import { ArrowUpRight, ShieldCheck, Zap, WalletCards, Gamepad2 } from "lucide-react";
 import { ensureSchema, getSql } from "@/lib/db";
+import SupportWidget from "@/app/components/support-widget";
+import AccountNav from "@/app/components/account-nav";
+
+export const dynamic = "force-dynamic";
 
 type StoreGame = {
  id: string;
@@ -17,7 +21,7 @@ export default async function Home() {
  try {
    await ensureSchema();
    const sql = getSql();
-   const rows = await sql`SELECT id, name, description, image, active, packages FROM games WHERE active = true ORDER BY created_at DESC` as StoreGame[];
+   const rows = await sql`SELECT id, name, description, image, active, packages FROM games WHERE active = true ORDER BY created_at DESC, name ASC` as StoreGame[];
    games = rows.map(game => {
      let packages = game.packages;
      if (typeof packages === "string") {
@@ -34,7 +38,7 @@ export default async function Home() {
   <div className="site-glow pointer-events-none fixed inset-0 -z-0"/>
   <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
    <a href="/" className="flex items-center gap-3"><img src="/nextr-logo.webp" alt="NexTronix FF" className="h-12 w-12 rounded-xl border border-violet-300/30 object-cover shadow-[0_0_25px_#8b20ff66]"/></a>
-   <nav className="hidden gap-8 text-sm text-violet-100/80 md:flex"><a href="#juegos">Juegos</a><a href="#como-funciona">Cómo comprar</a><a href="#pagos">Pagos</a></nav>
+   <nav className="hidden gap-8 text-sm text-violet-100/80 md:flex"><a href="#juegos">Juegos</a><a href="#como-funciona">Cómo comprar</a><a href="#pagos">Pagos</a></nav><AccountNav/>
    <a href="#juegos" className="rounded-xl border border-violet-300/30 bg-violet-500/15 px-4 py-2.5 text-sm font-bold hover:bg-violet-500/30">Ver recargas <ArrowUpRight className="ml-1 inline" size={15}/></a>
   </header>
   <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:pt-20">
