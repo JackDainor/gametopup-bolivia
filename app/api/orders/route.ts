@@ -28,6 +28,12 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
     await sql`INSERT INTO orders (id, customer_name, whatsapp, game_name, package_name, player_id, amount, receipt, status)
       VALUES (${id}, ${customer_name.trim()}, ${whatsapp.trim()}, ${game.name}, ${pack.name}, ${String(player_id)}, ${Number(pack.price)}, ${receipt}, 'verifying_payment')`;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+    if (botToken && chatId) {
+      const message = "🛒 NUEVO PEDIDO NEXTRONIX FF\\nJuego: " + game.name + "\\nPaquete: " + pack.name + "\\nJugador: " + String(player_id) + (player_name ? " (" + player_name + ")" : "") + "\\nCliente: " + customer_name + "\\nWhatsApp: " + whatsapp + "\\nTotal: Bs " + Number(pack.price).toFixed(2) + "\\nPedido: " + id;
+      try { await fetch("https://api.telegram.org/bot" + botToken + "/sendMessage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message }) }); } catch (e) { console.error("Telegram notification failed", e); }
+    }
     return NextResponse.json({ ok: true, id, status: "verifying_payment" });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo crear el pedido." }, { status: 503 });
