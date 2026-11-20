@@ -1,13 +1,26 @@
-import { ArrowUpRight, ShieldCheck, Zap, WalletCards } from "lucide-react";
-const games = [
- {name:"Free Fire",tag:"Más solicitado",icon:"🔥",desc:"Diamantes y membresías"},
- {name:"Mobile Legends",tag:"Bang Bang",icon:"⚔️",desc:"Diamantes y paquetes"},
- {name:"Roblox",tag:"Robux",icon:"🟥",desc:"Robux para tu cuenta"},
- {name:"Blood Strike",tag:"Recargas",icon:"🎯",desc:"Gold y contenido del juego"},
- {name:"Call of Duty Mobile",tag:"CP",icon:"🎖️",desc:"Puntos COD"},
- {name:"Genshin Impact",tag:"Cristales",icon:"✨",desc:"Cristales génesis"},
-];
-export default function Home() {
+import { ArrowUpRight, ShieldCheck, Zap, WalletCards, Gamepad2 } from "lucide-react";
+import { ensureSchema, getSql } from "@/lib/db";
+
+type StoreGame = {
+ id: string;
+ name: string;
+ description: string | null;
+ image: string | null;
+ active: boolean;
+ packages: { name: string; quantity: string; price: string }[] | null;
+};
+
+export default async function Home() {
+ let games: StoreGame[] = [];
+ let databaseError = false;
+ try {
+   await ensureSchema();
+   const sql = getSql();
+   games = await sql`SELECT id, name, description, image, active, packages FROM games WHERE active = true ORDER BY created_at DESC` as StoreGame[];
+ } catch (error) {
+   console.error("No se pudo cargar el catálogo público:", error);
+   databaseError = true;
+ }
  return <main className="min-h-screen overflow-hidden bg-[#08050f] text-white">
   <div className="site-glow pointer-events-none fixed inset-0 -z-0"/>
   <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
@@ -28,8 +41,8 @@ export default function Home() {
     <div className="grid grid-cols-2 gap-3"><div className="rounded-xl border border-violet-300/15 bg-black/30 p-4"><p className="text-xs text-violet-100/45">Moneda</p><p className="mt-1 text-xl font-black">BOL <span className="text-sm text-amber-300">Bs</span></p></div><div className="rounded-xl border border-violet-300/15 bg-black/30 p-4"><p className="text-xs text-violet-100/45">Pago</p><p className="mt-1 text-xl font-black">QR Bolivia</p></div></div>
    </div></div>
   </section>
-  <section id="juegos" className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.25em] text-amber-300">CATÁLOGO GAMER</p><h2 className="mt-2 text-3xl font-black sm:text-4xl">ELIGE TU JUEGO</h2><p className="mt-2 text-sm text-violet-100/55">Pronto podrás elegir tus paquetes y validar tu ID de jugador.</p></div><span className="rounded-full border border-violet-300/20 px-3 py-1.5 text-xs text-violet-100/60">6 juegos de ejemplo</span></div>
-   <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{games.map(g=><article key={g.name} className="group rounded-2xl border border-violet-300/15 bg-[#160d22]/85 p-5 transition duration-300 hover:-translate-y-1 hover:border-violet-400/50 hover:shadow-[0_15px_50px_#6d28d922]"><div className="mb-5 grid aspect-[1.7] place-items-center rounded-xl border border-violet-300/10 bg-gradient-to-br from-violet-700/30 via-fuchsia-900/15 to-amber-500/10 text-6xl">{g.icon}</div><span className="text-[10px] font-black uppercase tracking-widest text-amber-300">{g.tag}</span><h3 className="mt-2 text-xl font-extrabold">{g.name}</h3><p className="mt-1 text-sm text-violet-100/55">{g.desc}</p><button disabled className="mt-5 w-full cursor-not-allowed rounded-xl border border-violet-300/15 bg-violet-500/10 py-3 text-sm font-bold text-violet-200/50">Próximamente</button></article>)}</div>
+  <section id="juegos" className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.25em] text-amber-300">CATÁLOGO GAMER</p><h2 className="mt-2 text-3xl font-black sm:text-4xl">ELIGE TU JUEGO</h2><p className="mt-2 text-sm text-violet-100/55">Juegos y recargas disponibles en nuestro catálogo.</p></div><span className="rounded-full border border-violet-300/20 px-3 py-1.5 text-xs text-violet-100/60">{games.length} juegos disponibles</span></div>
+   {databaseError ? <div className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-8 text-center text-sm text-amber-100">No pudimos cargar el catálogo en este momento. Intenta nuevamente más tarde.</div> : games.length === 0 ? <div className="rounded-2xl border border-violet-300/15 bg-[#160d22]/85 p-10 text-center"><Gamepad2 className="mx-auto text-violet-300" size={36}/><h3 className="mt-4 text-xl font-bold">Próximamente nuevos juegos</h3><p className="mt-2 text-sm text-violet-100/55">Estamos preparando nuestro catálogo. Vuelve pronto.</p></div> : <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{games.map(g=><article key={g.id} className="group rounded-2xl border border-violet-300/15 bg-[#160d22]/85 p-4 transition duration-300 hover:-translate-y-1 hover:border-violet-400/50 hover:shadow-[0_15px_50px_#6d28d922] sm:p-5"><div className="mb-5 grid aspect-[1.7] place-items-center overflow-hidden rounded-xl border border-violet-300/10 bg-gradient-to-br from-violet-700/30 via-fuchsia-900/15 to-amber-500/10">{g.image ? <img src={g.image} alt={g.name} className="h-full w-full object-cover"/> : <Gamepad2 className="text-violet-200/60" size={42}/>}</div><span className="text-[10px] font-black uppercase tracking-widest text-amber-300">RECARGAS LATAM</span><h3 className="mt-2 text-lg font-extrabold sm:text-xl">{g.name}</h3><p className="mt-1 text-sm text-violet-100/55">{g.description || "Recargas disponibles"}</p><div className="mt-4 flex items-center justify-between rounded-xl border border-violet-300/10 bg-black/20 px-3 py-2"><span className="text-xs text-violet-100/50">Paquetes</span><strong className="text-sm text-amber-300">{g.packages?.length || 0}</strong></div><span className="mt-3 block text-center text-xs font-semibold text-emerald-300">Disponible</span></article>)}</div>}
   </section>
   <section id="como-funciona" className="relative z-10 border-y border-violet-300/10 bg-white/[.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><p className="text-xs font-black uppercase tracking-[.22em] text-amber-300">FÁCIL Y SEGURO</p><h2 className="mt-2 text-3xl font-black">¿CÓMO FUNCIONA?</h2><div className="mt-8 grid gap-4 md:grid-cols-3">{[["01","Selecciona tu juego","Elige el paquete que quieres y escribe tu ID de jugador."],["02","Confirma tu cuenta","Verificaremos el ID con el servicio disponible para cada juego."],["03","Paga con QR","Sube tu comprobante y administración revisará el pago."]].map(([n,t,d])=><div key={n} className="rounded-2xl border border-violet-300/15 bg-[#160d22] p-6"><span className="text-sm font-black text-amber-300">{n}</span><h3 className="mt-4 text-lg font-bold">{t}</h3><p className="mt-2 text-sm leading-6 text-violet-100/55">{d}</p></div>)}</div></div></section>
   <section id="pagos" className="relative z-10 mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="rounded-3xl border border-amber-300/20 bg-gradient-to-r from-amber-400/10 via-violet-500/10 to-transparent p-7 sm:p-10"><div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center"><div><p className="text-xs font-black uppercase tracking-[.22em] text-amber-300">PAGOS EN BOLIVIA</p><h2 className="mt-2 text-2xl font-black sm:text-3xl">PAGA CON QR BOLIVIANO</h2><p className="mt-2 max-w-xl text-sm leading-6 text-violet-100/60">El QR será configurado por administración. Cada comprobante será revisado manualmente antes de procesar la recarga.</p></div><span className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-black">🇧🇴 BOLIVIANOS · Bs</span></div></div></section>
