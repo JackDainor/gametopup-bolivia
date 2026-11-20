@@ -148,20 +148,18 @@ export default function AdminDashboard() {
   function receiptWhatsAppLink(o: any) {
     let phone = String(o.whatsapp || "").replace(/\\D/g, "");
     if (phone.length === 8) phone = "591" + phone;
+    const amount = Number(o.amount || 0);
+    const date = new Date(o.created_at).toLocaleString("es-BO", { timeZone: "America/La_Paz", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:true });
     const message = [
-      "🎉 ¡Tu recarga fue completada con éxito!",
-      "",
-      "📋 Resumen de tu pedido NexTronix FF",
-      "Pedido: " + o.id,
-      "Cliente: " + (o.customer_name || "Cliente"),
-      "Juego: " + (o.game_name || "No disponible"),
-      "Paquete: " + (o.package_name || "No disponible"),
-      "Jugador: " + (o.player_data?.player_name || "No disponible"),
-      "ID de jugador: " + (o.player_id || "No disponible"),
-      "Total pagado: " + money(o.amount),
-      "Estado: Recarga completada ✅",
-      "",
-      "¡Gracias por confiar en NexTronix FF!"
+      "🧾 RECIBO DE COMPRA",
+      "------------------------",
+      "📦 Producto: " + o.package_name + " - " + o.game_name,
+      "🆔 ID Jugador: " + o.player_id,
+      "👤 Nick: " + (o.player_data?.player_name || "No disponible"),
+      "💰 Monto: BOB " + amount.toFixed(2) + " · USD " + (amount / 10).toFixed(4),
+      "📅 Fecha: " + date,
+      "✅ Estado: ¡Entregado con éxito!",
+      "🎮 Gracias por preferirnos."
     ].join("\\n");
     return phone ? "https://wa.me/" + phone + "?text=" + encodeURIComponent(message) : "";
   }
