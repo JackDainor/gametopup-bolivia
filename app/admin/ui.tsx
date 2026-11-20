@@ -43,7 +43,8 @@ export default function AdminDashboard() {
         name: p.name,
         quantity: p.quantity || p.name,
         price: "",
-        shop2topup_id: String(p.shop2topup_id),\n        category_id: String(p.category_id),
+        shop2topup_id: String(p.shop2topup_id),
+        category_id: String(p.category_id),
       }));
       if (!imported.length) {
         setMessage("Shop2TopUp no devolvió paquetes Free Fire de tipo topup. No se modificó tu catálogo.");
