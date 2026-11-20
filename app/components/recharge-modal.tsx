@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, CheckCircle2, LoaderCircle, Upload, Copy } from "lucide-react";
 
-type Pack={name:string;quantity:string;price:string;shop2topup_id?:string};
+type Pack={name:string;quantity:string;price:string;shop2topup_id?:string;category_id?:string};
 type Game={id:string;name:string;packages:Pack[]};
 export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void}) {
  const [pack,setPack]=useState("");
@@ -23,8 +23,8 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
   if(!selectedShop2TopupId){setError("Este paquete todavía no está disponible para validar automáticamente.");return;}
   if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
   setValidating(true);setError("");setPlayerName("");setValidated(false);
-  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selectedShop2TopupId,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};const resolvedName=p.player_name||p.nickname||p.username||p.name||p.data?.player_name||p.data?.name||"";setPlayerName(resolvedName);setValidated(true);if(!resolvedName)setError("El ID fue aceptado, pero no recibimos el nombre del jugador.");}
-  catch(e){const raw=e instanceof Error?e.message:"";setError(raw.toLowerCase().includes("temporarily unavailable")?"Este paquete no está disponible para validación en este momento. Intenta nuevamente más tarde.":raw||"No se pudo verificar el ID. Revisa los datos e intenta nuevamente.");}finally{setValidating(false);}
+  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selectedShop2TopupId,category_id:selected?.category_id,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};const resolvedName=p.player_name||"";if(!resolvedName)throw new Error("La validación no devolvió el nombre real del jugador. No continúes con el pago.");setPlayerName(resolvedName);setValidated(true);}
+  catch(e){const raw=e instanceof Error?e.message:"";setError(raw.includes("PLAYER_CHECK_UNAVAILABLE")||raw.toLowerCase().includes("no pudo verificar el id en este momento")?"Este paquete no está disponible para validación en este momento. Intenta nuevamente más tarde.":raw||"No se pudo verificar el ID. Revisa los datos e intenta nuevamente.");}finally{setValidating(false);}
  }
  async function goPayment(){
   if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
