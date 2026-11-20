@@ -4,7 +4,7 @@ import { Gamepad2, LayoutDashboard, Package, Users, ReceiptText, QrCode, LogOut,
 
 type Pack = { name: string; quantity: string; price: string; shop2topup_id?: string; category_id?: string };
 type Game = { id: string; name: string; description: string; image: string; active: boolean; packages: Pack[] };
-type Data = { games: Game[]; qr: string; orders: any[]; customers: any[] };
+type Data = { games: Game[]; qr: string; support_whatsapp: string; orders: any[]; customers: any[] };
 
 const blank: Game = { id: "", name: "", description: "", image: "", active: true, packages: [] };
 function normalizeGameName(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
@@ -30,7 +30,7 @@ const tabs = [
 
 export default function AdminDashboard() {
   const [logged, setLogged] = useState(false), [password, setPassword] = useState("");
-  const [tab, setTab] = useState("overview"), [data, setData] = useState<Data>({ games: [], qr: "", orders: [], customers: [] });
+  const [tab, setTab] = useState("overview"), [data, setData] = useState<Data>({ games: [], qr: "", support_whatsapp: "", orders: [], customers: [] });
   const [game, setGame] = useState<Game>(blank), [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [regionOptions, setRegionOptions] = useState<{name:string;count:number}[]>([]);
@@ -135,8 +135,8 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   }
   async function saveQr() {
-    setBusy(true); const r = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ qr: data.qr }) });
-    const j = await r.json(); setBusy(false); setMessage(r.ok ? "QR actualizado." : j.error || "Error al guardar QR");
+    setBusy(true); const r = await fetch("/api/admin/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ qr: data.qr, support_whatsapp: data.support_whatsapp }) });
+    const j = await r.json(); setBusy(false); setMessage(r.ok ? "Configuración de pagos y soporte actualizada." : j.error || "Error al guardar");
   }
   async function logout() { await fetch("/api/admin/logout", { method: "POST" }); setLogged(false); setPassword(""); }
   const money = (v: number) => "Bs " + Number(v || 0).toFixed(2);
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
     </>}
     {tab === "orders" && <div className="table-card"><h2>Historial de pedidos</h2><div className="table-wrap"><table><thead><tr><th>Cliente</th><th>Juego</th><th>Paquete</th><th>Jugador</th><th>Total</th><th>Comprobante</th><th>Estado y acciones</th></tr></thead><tbody>{data.orders.map(o=><tr key={o.id}><td>{o.customer_name}<small>{o.whatsapp}</small></td><td>{o.game_name}</td><td>{o.package_name}</td><td><strong>{o.player_data?.player_name || "Nombre no disponible"}</strong><small>ID: {o.player_id}</small></td><td>{money(o.amount)}</td><td>{o.receipt ? <a className="ghost-btn" href={o.receipt} target="_blank" rel="noreferrer">Ver comprobante</a> : "Sin comprobante"}</td><td><span className="status-pill">{o.status === "verifying_payment" ? "Verificando pago" : o.status === "processing" ? "Procesando recarga" : o.status === "completed" ? "Completado" : o.status === "cancelled" ? "Cancelado" : o.status}</span>{o.status === "completed" && receiptWhatsAppLink(o) && <a className="ghost-btn" href={receiptWhatsAppLink(o)} target="_blank" rel="noreferrer">Enviar comprobante por WhatsApp</a>}<div className="mt-2 flex flex-wrap gap-1">{o.status === "verifying_payment" && <button className="ghost-btn" onClick={async()=>{if(!confirm("¿Confirmaste el pago? El pedido pasará a recarga manual."))return;const r=await fetch("/api/admin/orders/"+o.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"processing"})});const j=await r.json();if(!r.ok)setMessage(j.error||"No se pudo actualizar");load();}}>Confirmar pago e iniciar recarga</button>}{o.status === "processing" && <button className="ghost-btn" onClick={async()=>{if(!confirm("Confirma que realizaste la recarga en tu proveedor externo. ¿Marcar como completado?"))return;const r=await fetch("/api/admin/orders/"+o.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"completed"})});const j=await r.json();if(!r.ok)setMessage(j.error||"No se pudo actualizar");load();}}>Marcar recarga completada</button>}{o.status !== "completed" && o.status !== "cancelled" && <button className="ghost-btn danger" onClick={async()=>{if(!confirm("¿Cancelar este pedido?"))return;const r=await fetch("/api/admin/orders/"+o.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"cancelled"})});const j=await r.json();if(!r.ok)setMessage(j.error||"No se pudo actualizar");load();}}>Cancelar pedido</button>}</div></td></tr>)}</tbody></table>{!data.orders.length && <p className="empty-state">Todavía no hay pedidos.</p>}</div></div>}
     {tab === "customers" && <div className="table-card"><h2>Clientes registrados</h2><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>WhatsApp</th><th>Registro</th></tr></thead><tbody>{data.customers.map(c=><tr key={c.id}><td>{c.name}</td><td>{c.email}</td><td>{c.whatsapp}</td><td>{new Date(c.created_at).toLocaleDateString("es-BO")}</td></tr>)}</tbody></table>{!data.customers.length && <p className="empty-state">Aún no hay clientes registrados.</p>}</div></div>}
-    {tab === "payments" && <div className="editor-card"><h2>QR de pago de Bolivia</h2><p className="muted">Carga la imagen QR que verán tus clientes al pagar. La confirmación del pago seguirá siendo manual.</p><label className="upload-field"><Upload size={17}/> Subir imagen QR<input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0],"qr")}/></label>{data.qr && <img className="qr-preview" src={data.qr} alt="QR de pago"/>}<button className="primary-btn" onClick={saveQr} disabled={busy}><Save size={16}/> Guardar QR</button></div>}
+    {tab === "payments" && <div className="editor-card"><h2>QR de pago de Bolivia</h2><p className="muted">Carga la imagen QR que verán tus clientes al pagar. La confirmación del pago seguirá siendo manual.</p><label className="upload-field"><Upload size={17}/> Subir imagen QR<input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0],"qr")}/></label>{data.qr && <img className="qr-preview" src={data.qr} alt="QR de pago"/>}<label>Número de WhatsApp de soporte<input value={data.support_whatsapp || ""} onChange={e => setData(v => ({...v,support_whatsapp:e.target.value}))} placeholder="Ej. 5917XXXXXXX"/><small className="muted">Incluye el código de país. Este número aparecerá en el botón flotante «¿Tu recarga no llega?».</small></label><button className="primary-btn" onClick={saveQr} disabled={busy}><Save size={16}/> Guardar QR</button></div>}
     </section>
   </main>;
 }
