@@ -1,0 +1,4 @@
+"use client";
+import {useEffect,useState} from "react";
+import {MessageCircle} from "lucide-react";
+export default function SupportWidget(){const [phone,setPhone]=useState("");useEffect(()=>{fetch("/api/admin/settings").then(r=>r.json()).then(j=>setPhone(String(j.support_whatsapp||""))).catch(()=>{});},[]);if(!phone)return null;const clean=phone.replace(/\D/g,"");if(!clean)return null;return <a href={"https://wa.me/"+clean+"?text="+encodeURIComponent("Hola, mi recarga no llega. ¿Podrían ayudarme?")} target="_blank" rel="noreferrer" className="fixed bottom-5 right-4 z-40 flex items-center gap-2 rounded-full border border-emerald-300/30 bg-[#0b9d61] px-4 py-3 text-sm font-bold text-white shadow-xl shadow-emerald-900/40 transition hover:scale-105"><MessageCircle size={20}/><span>¿Tu recarga no llega?</span></a>}
