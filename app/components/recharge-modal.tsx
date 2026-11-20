@@ -1,0 +1,54 @@
+"use client";
+import { useState } from "react";
+import { X, CheckCircle2, LoaderCircle, Upload, Copy } from "lucide-react";
+
+type Pack={name:string;quantity:string;price:string;shop2topup_id?:string};
+type Game={id:string;name:string;packages:Pack[]};
+export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void}) {
+ const [pack,setPack]=useState(game.packages[0]?.name||"");
+ const [playerId,setPlayerId]=useState(""); const [playerName,setPlayerName]=useState("");
+ const [validating,setValidating]=useState(false); const [validated,setValidated]=useState(false);
+ const [customer,setCustomer]=useState(""); const [whatsapp,setWhatsapp]=useState("");
+ const [qr,setQr]=useState(""); const [receipt,setReceipt]=useState("");
+ const [step,setStep]=useState<"details"|"payment"|"sent">("details");
+ const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [orderId,setOrderId]=useState("");
+ const selected=game.packages.find(p=>p.name===pack);
+ async function validate(){
+  if(!selected?.shop2topup_id){setError("Este paquete aún no tiene configurado su ID de Shop2TopUp. Contacta al administrador.");return;}
+  if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
+  setValidating(true);setError("");setPlayerName("");setValidated(false);
+  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selected.shop2topup_id,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};setPlayerName(p.player_name||p.name||"");setValidated(true);if(!p.player_name&&!p.name)setError("ID validado, pero el proveedor no devolvió el nombre del jugador.");}
+  catch(e){setError(e instanceof Error?e.message:"Error al validar");}finally{setValidating(false);}
+ }
+ async function goPayment(){
+  if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
+  if(selected.shop2topup_id&&!validated){setError("Primero valida tu ID de jugador.");return;}
+  setBusy(true);setError("");
+  try{const r=await fetch("/api/store/qr");const j=await r.json();if(!r.ok||!j.qr)throw new Error("El administrador todavía no ha configurado el QR de pago.");setQr(j.qr);setStep("payment");}
+  catch(e){setError(e instanceof Error?e.message:"No se pudo cargar el QR.");}finally{setBusy(false);}
+ }
+ async function submitOrder(){
+  if(!receipt){setError("Adjunta el comprobante de pago.");return;}
+  setBusy(true);setError("");
+  try{const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({game_id:game.id,package_name:selected?.name,player_id:playerId,player_name:playerName,customer_name:customer,whatsapp,receipt})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo enviar el pedido.");setOrderId(j.id);setStep("sent");}
+  catch(e){setError(e instanceof Error?e.message:"Error al crear pedido.");}finally{setBusy(false);}
+ }
+ function fileToData(file:File){if(file.size>2*1024*1024){setError("El comprobante debe pesar menos de 2 MB.");return;}const reader=new FileReader();reader.onload=()=>setReceipt(String(reader.result));reader.readAsDataURL(file);}
+ return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm" onClick={onClose}><section className="relative max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-violet-300/20 bg-[#11091d] p-5 text-white shadow-2xl sm:p-7" onClick={e=>e.stopPropagation()}>
+ <button onClick={onClose} className="absolute right-4 top-4 rounded-full bg-white/10 p-2"><X size={18}/></button>
+ <p className="text-xs font-black tracking-[.2em] text-amber-300">NEXTRONIX FF · RECARGA</p><h2 className="mt-2 pr-8 text-2xl font-black">{game.name}</h2>
+ {step==="details"&&<div className="mt-5 space-y-4">
+ <label className="block text-sm text-violet-100/70">Elige tu paquete<select className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={pack} onChange={e=>{setPack(e.target.value);setValidated(false);setPlayerName("");}}>{game.packages.map(p=><option key={p.name} value={p.name}>{p.name} · {p.quantity} · Bs {Number(p.price).toFixed(2)}</option>)}</select></label>
+ {selected&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm"><span className="text-violet-100/60">Total a pagar</span><strong className="float-right text-lg text-amber-300">Bs {Number(selected.price).toFixed(2)}</strong></div>}
+ <label className="block text-sm text-violet-100/70">ID de jugador<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={playerId} onChange={e=>{setPlayerId(e.target.value);setValidated(false);}} placeholder="Escribe tu ID"/></label>
+ <button onClick={validate} disabled={validating||!selected?.shop2topup_id} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
+ {!selected?.shop2topup_id&&<p className="text-xs text-amber-200/70">La validación estará disponible cuando el administrador configure el ID de subcategoría Shop2TopUp para este paquete.</p>}
+ {validated&&<p className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300"><CheckCircle2 className="mr-2 inline"/>Jugador reconocido: <strong>{playerName||playerId}</strong></p>}
+ <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-violet-100/70">Tu nombre<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Nombre"/></label><label className="text-sm text-violet-100/70">WhatsApp<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="7XXXXXXX"/></label></div>
+ <button onClick={goPayment} disabled={busy} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 p-3.5 font-black">{busy?"Cargando...":"Continuar al pago"}</button>
+ </div>}
+ {step==="payment"&&<div className="mt-5 space-y-4"><div className="rounded-xl border border-amber-300/25 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100"><strong>Importante: paga exactamente el importe indicado.</strong><br/>Debes transferir <b>Bs {Number(selected?.price).toFixed(2)}</b> por este paquete. No redondees ni modifiques el monto.</div><div className="rounded-2xl bg-white p-3"><img src={qr} alt="QR de pago" className="mx-auto max-h-72 w-full object-contain"/></div><p className="text-center text-sm text-violet-100/70">Escanea el QR desde tu aplicación bancaria y paga exactamente el precio del paquete.</p><label className="block text-sm text-violet-100/70"><Upload className="mr-2 inline"/>Adjuntar comprobante<input type="file" accept="image/*" className="mt-2 block w-full text-xs" onChange={e=>e.target.files?.[0]&&fileToData(e.target.files[0])}/></label>{receipt&&<p className="text-xs text-emerald-300">Comprobante adjuntado correctamente.</p>}<button onClick={submitOrder} disabled={busy||!receipt} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 p-3.5 font-black disabled:opacity-50">{busy?"Enviando pedido...":"Confirmar recarga"}</button></div>}
+ {step==="sent"&&<div className="mt-7 text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-amber-400/10 text-amber-300"><LoaderCircle size={32}/></div><h3 className="mt-4 text-xl font-black">Verificando pago</h3><p className="mt-2 text-sm leading-6 text-violet-100/65">Tu pedido fue enviado. El administrador revisará el comprobante y actualizará el estado cuando confirme o rechace el pago y la recarga.</p><div className="mt-5 rounded-xl border border-violet-300/20 bg-black/20 p-3 text-xs">Código de pedido<br/><strong className="mt-1 block break-all text-amber-300">{orderId}</strong><button className="mt-2 text-violet-200 underline" onClick={()=>navigator.clipboard?.writeText(orderId)}><Copy className="mr-1 inline" size={13}/>Copiar código</button></div><a href={"/pedido?id="+orderId} className="mt-5 block rounded-xl bg-violet-600 p-3 font-bold">Consultar estado del pedido</a></div>}
+ {error&&<p className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>}
+ </section></div>;
+}
