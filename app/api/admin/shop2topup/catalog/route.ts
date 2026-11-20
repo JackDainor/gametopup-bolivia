@@ -5,10 +5,11 @@ const base = (process.env.SHOP2TOPUP_BASE_URL || "https://shop2topup.com/api/end
 
 function rows(value: any): any[] {
   if (Array.isArray(value)) return value;
+  for (const key of ["categories", "subcategories", "big_categories", "items", "results"]) {
+    if (Array.isArray(value?.[key])) return value[key];
+    if (Array.isArray(value?.data?.[key])) return value.data[key];
+  }
   if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.items)) return value.data.items;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
   return [];
 }
 
