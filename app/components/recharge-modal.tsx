@@ -27,7 +27,8 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
   catch(e){const raw=e instanceof Error?e.message:"";setError(raw.includes("PLAYER_CHECK_UNAVAILABLE")||raw.toLowerCase().includes("no pudo verificar el id en este momento")?"Este paquete no está disponible para validación en este momento. Intenta nuevamente más tarde.":raw||"No se pudo verificar el ID. Revisa los datos e intenta nuevamente.");}finally{setValidating(false);}
  }
  async function goPayment(){
-  if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}\n  if(!selected.price||!Number.isFinite(Number(selected.price))||Number(selected.price)<=0){setError("Este paquete todavía no tiene un precio de venta. Contacta al administrador.");return;}
+  if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
+  if(!selected.price||!Number.isFinite(Number(selected.price))||Number(selected.price)<=0){setError("Este paquete todavía no tiene un precio de venta. Contacta al administrador.");return;}
   if(isFreeFire&&!selectedShop2TopupId){setError("Este paquete aún no tiene vinculado un producto válido para verificar el jugador. Contacta al administrador.");return;}
   if(selectedShop2TopupId&&!validated){setError("Primero valida tu ID de jugador.");return;}
   setBusy(true);setError("");
