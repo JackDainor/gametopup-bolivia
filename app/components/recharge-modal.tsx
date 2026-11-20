@@ -11,7 +11,8 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  useEffect(()=>{setMounted(true);document.body.style.overflow="hidden";return()=>{document.body.style.overflow="";};},[]);
  const [playerId,setPlayerId]=useState(""); const [playerName,setPlayerName]=useState("");
  const [validating,setValidating]=useState(false); const [validated,setValidated]=useState(false);
- const [customer,setCustomer]=useState(""); const [whatsapp,setWhatsapp]=useState(""); const [account,setAccount]=useState<any>(null);\n useEffect(()=>{fetch("/api/auth/me").then(r=>r.json()).then(j=>{if(j.user){setAccount(j.user);setCustomer(j.user.name||"");setWhatsapp(j.user.whatsapp||"");}}).catch(()=>{});},[]);
+ const [customer,setCustomer]=useState(""); const [whatsapp,setWhatsapp]=useState(""); const [account,setAccount]=useState<any>(null);
+ useEffect(()=>{fetch("/api/auth/me").then(r=>r.json()).then(j=>{if(j.user){setAccount(j.user);setCustomer(j.user.name||"");setWhatsapp(j.user.whatsapp||"");}}).catch(()=>{});},[]);
  const [qr,setQr]=useState(""); const [receipt,setReceipt]=useState("");
  const [step,setStep]=useState<"details"|"payment"|"sent">("details");
  const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [orderId,setOrderId]=useState("");
