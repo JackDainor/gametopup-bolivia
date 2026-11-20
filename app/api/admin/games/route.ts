@@ -8,10 +8,11 @@ export async function GET() {
     await ensureSchema();
     const sql = getSql();
     const games = await sql`SELECT id, name, description, image, active, packages FROM games ORDER BY created_at DESC`;
-    const settings = await sql`SELECT value FROM store_settings WHERE key = 'payment_qr' LIMIT 1`;
+    const settings = await sql`SELECT key, value FROM store_settings WHERE key IN ('payment_qr','support_whatsapp')`;
+    const settingMap = Object.fromEntries(settings.map((item: any) => [item.key, item.value]));
     const orders = await sql`SELECT id, customer_name, whatsapp, game_name, package_name, player_id, player_data, amount, receipt, status, created_at FROM orders ORDER BY created_at DESC LIMIT 100`;
     const customers = await sql`SELECT id, name, email, whatsapp, created_at FROM customers ORDER BY created_at DESC LIMIT 200`;
-    return NextResponse.json({ games, qr: settings[0]?.value || "", orders, customers });
+    return NextResponse.json({ games, qr: settingMap.payment_qr || "", support_whatsapp: settingMap.support_whatsapp || "", orders, customers });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Error de base de datos" }, { status: 503 });
   }
