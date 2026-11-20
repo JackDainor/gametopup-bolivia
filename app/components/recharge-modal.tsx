@@ -17,9 +17,8 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [orderId,setOrderId]=useState("");
  const selected=game.packages.find(p=>p.name===pack);
  const isFreeFire=game.name.toLowerCase().includes("free fire");
- // Los paquetes actuales de Free Fire son vouchers; no admiten validación de cuenta.
- // No enviar sus item_id al endpoint de validación de jugador.
- const selectedShop2TopupId=isFreeFire ? undefined : selected?.shop2topup_id;
+ // El ID de Shop2TopUp identifica el producto topup usado solo para validar al jugador.
+ const selectedShop2TopupId=selected?.shop2topup_id;
  async function validate(){
   if(!selectedShop2TopupId){setError("Este paquete todavía no está disponible para validar automáticamente.");return;}
   if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
@@ -29,6 +28,7 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  }
  async function goPayment(){
   if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
+  if(isFreeFire&&!selectedShop2TopupId){setError("Este paquete aún no tiene vinculado un producto válido para verificar el jugador. Contacta al administrador.");return;}
   if(selectedShop2TopupId&&!validated){setError("Primero valida tu ID de jugador.");return;}
   setBusy(true);setError("");
   try{const r=await fetch("/api/store/qr");const j=await r.json();if(!r.ok||!j.qr)throw new Error("El administrador todavía no ha configurado el QR de pago.");setQr(j.qr);setStep("payment");}
@@ -56,7 +56,7 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  {validated&&<div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4"><p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Jugador verificado</p><p className="mt-1 text-xl font-black text-white">{playerName||playerId}</p><p className="mt-1 text-xs text-emerald-100/70">Comprueba que este sea tu perfil antes de continuar.</p></div>}
  </div>
  )}
- {selected&&!selectedShop2TopupId&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm text-amber-100/80"><strong className="block text-amber-200">Verificación manual del jugador</strong><span className="mt-1 block text-xs leading-relaxed">Este paquete no permite consultar automáticamente el nombre de la cuenta. Revisa tu ID antes de continuar; el administrador lo comprobará antes de realizar la recarga.</span></div>}
+ {selected&&isFreeFire&&!selectedShop2TopupId&&<div className="rounded-xl border border-red-300/20 bg-red-300/5 p-3 text-sm text-red-100/80">Este paquete todavía no está configurado para validar tu cuenta. No podrás continuar hasta que el administrador lo configure.</div>}
  {!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
 
  <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-violet-100/70">Tu nombre<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Nombre"/></label><label className="text-sm text-violet-100/70">WhatsApp<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="7XXXXXXX"/><span className="mt-1 block text-xs leading-relaxed text-violet-100/50">Usaremos tu número de WhatsApp para enviarte la confirmación y el comprobante cuando tu recarga esté completada. Incluye el código de país si corresponde.</span></label></div>
