@@ -16,16 +16,25 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  const [step,setStep]=useState<"details"|"payment"|"sent">("details");
  const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [orderId,setOrderId]=useState("");
  const selected=game.packages.find(p=>p.name===pack);
+ const freeFirePackageIds: Record<string,string> = {
+  "100 + 10 Diamonds":"23",
+  "210 + 21 Diamonds":"24",
+  "530 + 53 Diamonds":"25",
+  "1,080 + 108 Diamonds":"26",
+  "2,200 + 220 Diamonds":"27"
+ };
+ const isFreeFire=game.name.toLowerCase().includes("free fire");
+ const selectedShop2TopupId=selected?.shop2topup_id || (isFreeFire && selected ? freeFirePackageIds[selected.name] : undefined);
  async function validate(){
-  if(!selected?.shop2topup_id){setError("Este paquete aún no tiene configurado su ID de Shop2TopUp. Contacta al administrador.");return;}
+  if(!selectedShop2TopupId){setError("Este paquete aún no tiene configurado su ID de Shop2TopUp. Contacta al administrador.");return;}
   if(!playerId.trim()){setError("Escribe tu ID de jugador.");return;}
   setValidating(true);setError("");setPlayerName("");setValidated(false);
-  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selected.shop2topup_id,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};setPlayerName(p.player_name||p.name||"");setValidated(true);if(!p.player_name&&!p.name)setError("ID validado, pero el proveedor no devolvió el nombre del jugador.");}
+  try{const r=await fetch("/api/shop2topup/validate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sub_category_id:selectedShop2TopupId,player_id:playerId.trim()})});const j=await r.json();if(!r.ok)throw new Error(j.error||"No se pudo validar el ID.");const p=j.player||{};setPlayerName(p.player_name||p.name||"");setValidated(true);if(!p.player_name&&!p.name)setError("ID validado, pero el proveedor no devolvió el nombre del jugador.");}
   catch(e){setError(e instanceof Error?e.message:"Error al validar");}finally{setValidating(false);}
  }
  async function goPayment(){
   if(!selected||!playerId.trim()||!customer.trim()||!whatsapp.trim()){setError("Completa todos los campos.");return;}
-  if(selected.shop2topup_id&&!validated){setError("Primero valida tu ID de jugador.");return;}
+  if(selectedShop2TopupId&&!validated){setError("Primero valida tu ID de jugador.");return;}
   setBusy(true);setError("");
   try{const r=await fetch("/api/store/qr");const j=await r.json();if(!r.ok||!j.qr)throw new Error("El administrador todavía no ha configurado el QR de pago.");setQr(j.qr);setStep("payment");}
   catch(e){setError(e instanceof Error?e.message:"No se pudo cargar el QR.");}finally{setBusy(false);}
@@ -45,8 +54,8 @@ export default function RechargeModal({game,onClose}:{game:Game;onClose:()=>void
  <div><div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-sm font-bold text-white">Selecciona tu paquete</p><p className="mt-1 text-xs text-violet-100/50">Toca el paquete que deseas comprar.</p></div><span className="text-xs text-violet-200/60">{game.packages.length} disponibles</span></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{game.packages.map((p,i)=><button type="button" key={p.name} onClick={()=>{setPack(p.name);setValidated(false);setPlayerName("");setError("");}} className={`group relative min-h-[112px] rounded-2xl border p-3 text-left transition-all duration-200 ${pack===p.name?"border-amber-300 bg-gradient-to-br from-violet-900/80 to-black shadow-[0_0_22px_#a855f755] ring-1 ring-amber-300/60":"border-violet-300/20 bg-[#101010] hover:border-violet-400/70 hover:bg-[#171020]"}`}><span className="block text-[11px] font-bold uppercase tracking-wide text-violet-200/65">{p.quantity||"Paquete"}</span><strong className="mt-2 block text-sm leading-snug text-white">{p.name}</strong><span className="mt-3 block text-lg font-black text-amber-300">Bs {Number(p.price).toFixed(2)}</span>{pack===p.name&&<span className="absolute right-2 top-2 rounded-full bg-amber-300 p-1 text-black"><CheckCircle2 size={13}/></span>}</button>)}</div></div>
  {selected&&<div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm"><span className="text-violet-100/60">Total a pagar</span><strong className="float-right text-lg text-amber-300">Bs {Number(selected.price).toFixed(2)}</strong></div>}
  <label className="block text-sm text-violet-100/70">ID de jugador<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={playerId} onChange={e=>{setPlayerId(e.target.value);setValidated(false);}} placeholder="Escribe tu ID"/></label>
- <button onClick={validate} disabled={validating||!selected||!selected.shop2topup_id} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
- {selected&&!selected.shop2topup_id&&<p className="text-xs text-amber-200/70">La validación estará disponible cuando el administrador configure el ID de subcategoría Shop2TopUp para este paquete.</p>}{!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
+ <button onClick={validate} disabled={validating||!selected} className="w-full rounded-xl border border-violet-300/30 bg-violet-500/15 p-3 font-bold disabled:opacity-50">{validating?<><LoaderCircle className="mr-2 inline animate-spin"/>Validando...</>:"Validar ID de jugador"}</button>
+ {selected&&!selectedShop2TopupId&&<p className="text-xs text-amber-200/70">Este paquete todavía no tiene un ID de validación configurado.</p>}{selectedShop2TopupId&&<p className="text-xs text-emerald-200/60">Paquete vinculado a Shop2TopUp · ID {selectedShop2TopupId}</p>}{!selected&&<p className="text-xs text-amber-200/70">Selecciona un paquete para continuar.</p>}
  {validated&&<p className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300"><CheckCircle2 className="mr-2 inline"/>Jugador reconocido: <strong>{playerName||playerId}</strong></p>}
  <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-violet-100/70">Tu nombre<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Nombre"/></label><label className="text-sm text-violet-100/70">WhatsApp<input className="mt-2 w-full rounded-xl border border-violet-300/20 bg-[#21132e] p-3 text-white" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="7XXXXXXX"/><span className="mt-1 block text-xs leading-relaxed text-violet-100/50">Usaremos tu número de WhatsApp para enviarte la confirmación y el comprobante cuando tu recarga esté completada. Incluye el código de país si corresponde.</span></label></div>
  <button onClick={goPayment} disabled={busy||!selected} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 p-3.5 font-black">{busy?"Cargando...":"Continuar al pago"}</button>
