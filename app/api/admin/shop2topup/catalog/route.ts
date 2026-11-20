@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     const normalized = normalize(value);
     return terms.some(term => normalized.includes(normalize(term)));
   };
-  const isLatam = (value: string) => /\\b(latam|latin america|south america|central america|latin american|latinoamerica|latinoamerica|america latina|sudamerica|sur america)\\b/i.test(normalize(value));
+  const isLatam = (value: string) => /(^| )(latam|latin america|south america|central america|latin american|latinoamerica|america latina|sudamerica|sur america)( |$)/i.test(normalize(value));
   const key = process.env.SHOP2TOPUP_API_KEY;
   if (!key) return NextResponse.json({ error: "Falta configurar Shop2TopUp." }, { status: 503 });
 
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         if (categoryId == null) continue;
         const categoryName = String(category.name || category.title || "");
         const bigName = String(big.name || big.title || "");
-        seenCategories.push(categoryName || bigName || String(categoryId));
+        seenCategories.push(bigName + " > " + (categoryName || String(categoryId)));
         const subBody = await providerGet("/catalog/subcategories?categoryId=" + encodeURIComponent(String(categoryId)), key);
         for (const item of rows(subBody)) {
           const name = String(item.name || item.title || item.product_name || "");
@@ -75,7 +75,9 @@ export async function GET(request: Request) {
 
           const productType = String(item.product_type || item.fulfillment_type || "").toLowerCase();
           candidateTypes[productType || "(sin tipo)"] = (candidateTypes[productType || "(sin tipo)"] || 0) + 1;
+          // Shop2TopUp coloca la región en el nombre de la categoría, no siempre en el producto.
           const regionText = [
+            bigName, categoryName, item.category_name,
             item.region, item.region_name, item.server, item.server_name,
             item.country, item.country_name, item.market, item.market_name,
             item.description, item.name, item.title
@@ -85,11 +87,11 @@ export async function GET(request: Request) {
           const itemId = item.item_id ?? item.id;
           const latam = isLatam(regionText);
           if (productType !== "topup" || itemId == null) {
-            if (gameCandidates.length < 12) gameCandidates.push({ name, product_type: productType || null, category: categoryName, region_fields: regionText || null });
+            if (gameCandidates.length < 25) gameCandidates.push({ name, product_type: productType || null, category_path: bigName + " > " + categoryName, region_fields: regionText || null });
             continue;
           }
           if (!latam) {
-            if (gameCandidates.length < 12) gameCandidates.push({ name, product_type: productType, category: categoryName, region_fields: regionText || "No se encontró región explícita" });
+            if (gameCandidates.length < 25) gameCandidates.push({ name, product_type: productType, category_path: bigName + " > " + categoryName, region_fields: regionText || "No se encontró región explícita" });
             continue;
           }
           found.push({
@@ -108,7 +110,7 @@ export async function GET(request: Request) {
       packages: found,
       diagnostics: found.length ? undefined : {
         requested_game: gameName,
-        categories_seen: seenCategories.slice(0, 40),
+        categories_seen: seenCategories.filter(value => /free fire/i.test(value)).slice(0, 100),
         game_candidate_count: Object.values(candidateTypes).reduce((a, b) => a + b, 0),
         product_types: candidateTypes,
         samples: gameCandidates,
