@@ -64,6 +64,7 @@ export async function GET(request: Request) {
   const gameName = params.get("game")?.trim();
   const requestedRegion = params.get("region")?.trim();
   const mode = params.get("mode");
+  const normalizedGame = normalize(gameName || "");
   const aliases: Record<string, string[]> = {
     "free fire": ["free fire", "freefire", "garena free fire"],
     "mlbb": ["mobile legends", "mobile legends bang bang", "mlbb"],
@@ -87,7 +88,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ games });
     }
     if (!gameName) return NextResponse.json({ error: "Selecciona un juego del catálogo de Shop2TopUp." }, { status: 400 });
-    const normalizedGame = normalize(gameName);
     const candidates: any[] = [];
     const candidateTypes: Record<string, number> = {};
     const categoriesSeen: string[] = [];
