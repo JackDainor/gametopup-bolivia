@@ -64,9 +64,6 @@ export async function GET(request: Request) {
   const gameName = params.get("game")?.trim();
   const requestedRegion = params.get("region")?.trim();
   const mode = params.get("mode");
-  if (!gameName) return NextResponse.json({ error: "Indica el nombre del juego que deseas importar." }, { status: 400 });
-
-  const normalizedGame = normalize(gameName);
   const aliases: Record<string, string[]> = {
     "free fire": ["free fire", "freefire", "garena free fire"],
     "mlbb": ["mobile legends", "mobile legends bang bang", "mlbb"],
@@ -82,6 +79,15 @@ export async function GET(request: Request) {
 
   try {
     const bigCategories = rows(await providerGet("/catalog/big-categories", key));
+    if (mode === "games") {
+      const games = Array.from(new Set(bigCategories
+        .map((item: any) => String(item.name || item.title || item.game_name || "").trim())
+        .filter(Boolean)));
+      games.sort((a, b) => a.localeCompare(b, "es"));
+      return NextResponse.json({ games });
+    }
+    if (!gameName) return NextResponse.json({ error: "Selecciona un juego del catálogo de Shop2TopUp." }, { status: 400 });
+    const normalizedGame = normalize(gameName);
     const candidates: any[] = [];
     const candidateTypes: Record<string, number> = {};
     const categoriesSeen: string[] = [];
