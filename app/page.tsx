@@ -17,7 +17,7 @@ export default async function Home() {
  try {
    await ensureSchema();
    const sql = getSql();
-   games = await sql`SELECT id, name, description, image, active, packages FROM games WHERE active = true ORDER BY created_at DESC` as StoreGame[];
+   const rows = await sql`SELECT id, name, description, image, active, packages FROM games WHERE active = true ORDER BY created_at DESC` as StoreGame[];\n   games = rows.map(game => {\n     let packages = game.packages;\n     if (typeof packages === "string") { try { packages = JSON.parse(packages) as StoreGame["packages"]; } catch { packages = []; } }\n     return { ...game, packages: Array.isArray(packages) ? packages : [] };\n   });
  } catch (error) {
    console.error("No se pudo cargar el catálogo público:", error);
    databaseError = true;
